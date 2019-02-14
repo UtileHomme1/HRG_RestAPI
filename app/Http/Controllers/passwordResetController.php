@@ -2,91 +2,75 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Notifications\passwordResetSendToUser;
-use App\Notifications\passwordResetDone;
 use App\User;
-use App\passwordReset;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use App\Notifications\PasswordResetDone;
+use App\Notifications\PasswordResetRequest;
 
 class passwordResetController extends Controller
 {
-    public function checkUserEmail(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-        ]);
-
-        $userDetails = User::where('email', $request->email)->first();
-
-        if (!$userDetails)
-        return response()->json([
-            'data' => 'User with this email address does not exist'
-        ], 404);
-
-        $passwordReset = passwordReset::updateOrCreate(
-            ['email' => $userDetails->email],
-            [
-                'email' => $userDetails->email,
-                'token' => str_random(60)
-             ]
-        );
-
-        if ($userDetails && $passwordReset)
-        $userDetails->notify(
-            new passwordResetSendToUser($passwordReset->token)
-        );
-
-        return response()->json([
-            'data' => 'Password Reset Link Sent!'
-        ]);
-
-
-    }
-
-    public function checkToken($token)
-    {
-        $passwordReset = passwordReset::where('token', $token)->first();
-
-            if (!$passwordReset)
-            return response()->json([
-                'message' => 'Password reset token is invalid'
-            ], 404);
-
-            return response()->json($passwordReset);
-    }
-
-    public function reset(Request $request)
+    public function checkEmail(Request $request)
     {
         $request->validate([
             'email' => 'required|string|email',
-            'password' => 'required|string|confirmed',
-            'token' => 'required|string'
         ]);
 
-        $passwordReset = passwordReset::where([
-            ['token', $request->token],
-            ['email', $request->email] ])->first();
+        $user = User::where('email', $request->email)->first();
 
-        if (!$passwordReset)
+        if (!$user)
+            return response()->json([
+                'message' => 'We cant find a user with that e-mail address.'
+            ], 404);
+
+
+        if ($user)
+            $user->notify(
+                new PasswordResetRequest()
+            );
         return response()->json([
-            'message' => 'Password reset token is not valid'
-        ], 404);
-
-    $user = User::where('email', $passwordReset->email)->first();
-
-    if (!$user)
-        return response()->json([
-            'message' => 'User with this email id does not exist'
-        ], 404);
-
-    $user->password = bcrypt($request->password);
-
-    $user->save();
-
-    $passwordReset->delete();
-
-    $user->notify(new passwordResetDone($passwordReset));
-    return response()->json($user);
-
+            'message' => 'We have e-mailed your password reset link!'
+        ]);
     }
+
+
+    public function reset(Request $request)
+    {
+    $request->validate([
+        'email' => 'required|string|email',
+        'old_password' => 'required|string',
+        'password' => 'required|string|confirmed',
+    ]);
+
+$user = User::where('email', $request->email)->first();
+
+
+if (!$user)
+    return response()->json([
+        'message' => 'User with this email id does not exist'
+    ], 404);
+
+
+
+
+
+if(!Hash::check($request->old_password, $user->password))
+{
+    return response()->json([
+        'message' => 'Old Password Does not match'
+    ], 404);
+}
+
+else
+{
+    $user->password = Hash::make($request->password);
+    $user->save();
+}
+
+
+
+$user->notify(new PasswordResetDone());
+return response()->json($user);
+}
+
 }

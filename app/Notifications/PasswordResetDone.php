@@ -7,20 +7,18 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class passwordResetSendToUser extends Notification
+class PasswordResetDone extends Notification
 {
     use Queueable;
-
-    protected $token;
 
     /**
      * Create a new notification instance.
      *
      * @return void
      */
-    public function __construct($token)
+    public function __construct()
     {
-        $this->token = $token;
+        //
     }
 
     /**
@@ -42,12 +40,8 @@ class passwordResetSendToUser extends Notification
      */
     public function toMail($notifiable)
     {
-        $url = url('/api/passwordreset/checkToken/'.$this->token);
-
         return (new MailMessage)
-                    ->line('You have initiated a request for Password Reset.')
-                    ->action('Reset Password', url($url))
-                    ->line('Thank you for using our application!');
+                    ->line('Your password has been reset');
     }
 
     /**

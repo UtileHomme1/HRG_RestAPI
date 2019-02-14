@@ -19,10 +19,19 @@ Route::post('signupuser', 'userController@signup');
 
 Route::group([
     'middleware' => 'api',
-    'prefix' => 'passwordreset'
+    'prefix' => 'forgotpassword'
 ], function ()
 {
-    Route::post('checkUserEmail', 'passwordResetController@checkUserEmail');
-    Route::get('checkToken/{token}', 'passwordResetController@checkToken');
+    Route::post('checkUserEmail', 'passwordForgotController@checkUserEmail');
+    Route::get('checkToken/{token}', 'passwordForgotController@checkToken');
+    Route::post('forgot', 'passwordForgotController@forgot');
+});
+
+Route::group([
+    'middleware' => 'api',
+    'prefix' => 'resetpassword'
+], function ()
+{
+    Route::post('checkEmail', 'passwordResetController@checkEmail');
     Route::post('reset', 'passwordResetController@reset');
 });
